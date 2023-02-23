@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.7;
 
 
 /// @title Price Feed
 /// @author Musa AbdulKareem (@WiseMrMusa)
+/// @author Okoli Evans
 /// @notice This gets the exchange rate of two Tokens
 
 import { ERC20 , IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -16,6 +18,7 @@ contract LiquidityPool is ExchangeRate {
     address private SWAP_ROUTER;
 
     mapping (bytes32 => address) private PairFactory;
+
     function createPair(address _tokenA, address _tokenB) internal returns (address) {
         require(_tokenA != address(0) && _tokenB != address(0));
         bytes32 pairNode = keccak256(abi.encodePacked(_tokenA,_tokenB));
@@ -46,7 +49,7 @@ contract LiquidityPool is ExchangeRate {
             uint8 _tokenBDecimals = IERC20Metadata(_tokenB).decimals();
 
         int256 rateOfB = getSwapTokenPrice(
-            (_tokenASymbol),
+            _tokenASymbol,
             _tokenBSymbol,
             _tokenBDecimals,
             _amountInTokenA
@@ -63,10 +66,71 @@ contract LiquidityPool is ExchangeRate {
                 pairAddress,
                 uint256(rateOfB));
 
-            (bool success1, bytes memory data1) = (_tokenA).call(abi.encodeWithSelector(0x095ea7b3,SWAP_ROUTER,_amountInTokenA));
-            (bool success2, bytes memory data2) = (_tokenB).call(abi.encodeWithSelector(0x095ea7b3,SWAP_ROUTER,rateOfB));
+            // (bool success1, bytes memory data1) = (_tokenA).call(abi.encodeWithSelector(0x095ea7b3,SWAP_ROUTER,_amountInTokenA));
+            // (bool success2, bytes memory data2) = (_tokenB).call(abi.encodeWithSelector(0x095ea7b3,SWAP_ROUTER,rateOfB));
 
-            require (success1 && success2, "Ko wo le");
+            require (success1 && success2, "Failed to add liquidity!");
         }
     }
+
+        function removeLiquidity(
+            address _tokenA,
+            address _tokenB,
+            address _to,
+            uint _amount
+        ) internal returns(uint _amountA, uint _amountB) {
+            address pairAddress = getPair(_tokenA, _tokenB);
+            require(pairAddress, "Liquidity pool not available");
+            (uint _amountA) = IERC20(_tokenA).transferFrom(
+                pairAddress,
+                _to,
+                _amount   
+            );
+            (uint _amountB) = IERC20(_tokenB).transferFrom(
+                pairAddress,
+                _to,
+                _amount
+            );
+            require(success, "Operation failed");
+    }
+
+        function swap(
+            address _tokenA,
+            address _tokenB,
+            uint _amountToSwap,
+            // address _DEXPool,
+            address _buyer
+        ) public returns(bool success) {
+            require(_tokenA != address(0) && _tokenB != address(0), "Invalid address");
+            require(_amountToSwap <= IERC20(_tokenA).balanceOf(msg.sender), "Insufficient Balance");
+            uint8 decimals = IERC20Metadata(_tokenA).decimals();
+            address pairAddress = getPair(_tokenA, _tokenB);
+            require(pairAddress, "Token liquidity pool not available");
+            uint amountOut = getSwapTokenPrice(
+                _tokenA, 
+                _tokenB, 
+                decimals, 
+                _amountToSwap
+            );
+            require(IERC20(_tokenB).balanceOf(pairAddress) >= amountOut, "try again shortly");
+            
+            IERC20(_tokenA).transferFrom(
+                msg.sender,
+                pairAddress,
+                _amountToSwap
+            );
+            IERC20(_tokenB).transferFrom(
+                pairAddress,
+                _buyer,
+                amountOut
+            );
+
+            success = true;
+            require(success, "Swap fail!");
+        }
+
+    // TOKENS TO SWAP, EXCHANGE RATE, ADDRESS TO RECEIVE INCOMING TOKEN, ADDRESS TO TAKE 
+    // OUTGOING TOKEN, 
+    //
+
 }
