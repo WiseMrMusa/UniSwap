@@ -8,6 +8,7 @@ import { LiquidityPool } from "./LiquidityPool.sol";
 
 /// @title Price Feed
 /// @author Musa AbdulKareem (@WiseMrMusa)
+/// @author Okoli Evans
 /// @notice This gets the exchange rate of two Tokens
 
 contract SwapRouter is ExchangeRate, LiquidityPool {
