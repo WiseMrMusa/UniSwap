@@ -77,19 +77,20 @@ contract LiquidityPool is ExchangeRate {
             address _tokenA,
             address _tokenB,
             address _to,
-            uint _amount
+            uint _amountTokenA,
+            uint _amountTokenB
         ) internal returns(bool success1, bool success2) {
             address pairAddress = getPair(_tokenA, _tokenB);
             //require(pairAddress, "Liquidity pool not available");
-            IERC20(_tokenA).transferFrom(
+            success1 = IERC20(_tokenA).transferFrom(
                 pairAddress,
                 _to,
-                _amount   
+                _amountTokenA   
             );
-            IERC20(_tokenB).transferFrom(
+            success2 = IERC20(_tokenB).transferFrom(
                 pairAddress,
                 _to,
-                _amount
+                _amountTokenB
             );
             require(success1 && success2, "Operation failed");
     }
