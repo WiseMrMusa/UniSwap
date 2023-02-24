@@ -42,7 +42,7 @@ contract LiquidityPool is ExchangeRate {
         address _tokenB, 
         int256 _amountInTokenA, 
         int256 _amountInTokenB
-    ) external {
+    ) external returns(bool success1, bool success2)/** WHY SUCCESS1 & SUCCESS2? */{
         address pairAddress = getPair(_tokenA,_tokenB) == address(0)? createPair(_tokenA,_tokenB) : getPair(_tokenA,_tokenB) ;
             string memory _tokenASymbol = IERC20Metadata(_tokenA).symbol();
             string memory _tokenBSymbol = IERC20Metadata(_tokenB).symbol();
@@ -78,46 +78,48 @@ contract LiquidityPool is ExchangeRate {
             address _tokenB,
             address _to,
             uint _amount
-        ) internal returns(uint _amountA, uint _amountB) {
+        ) internal returns(bool success1, bool success2) {
             address pairAddress = getPair(_tokenA, _tokenB);
-            require(pairAddress, "Liquidity pool not available");
-            (uint _amountA) = IERC20(_tokenA).transferFrom(
+            //require(pairAddress, "Liquidity pool not available");
+            IERC20(_tokenA).transferFrom(
                 pairAddress,
                 _to,
                 _amount   
             );
-            (uint _amountB) = IERC20(_tokenB).transferFrom(
+            IERC20(_tokenB).transferFrom(
                 pairAddress,
                 _to,
                 _amount
             );
-            require(success, "Operation failed");
+            require(success1 && success2, "Operation failed");
     }
 
         function swap(
             address _tokenA,
             address _tokenB,
-            uint _amountToSwap,
+            int _amountToSwap,
             // address _DEXPool,
             address _buyer
         ) public returns(bool success) {
             require(_tokenA != address(0) && _tokenB != address(0), "Invalid address");
-            require(_amountToSwap <= IERC20(_tokenA).balanceOf(msg.sender), "Insufficient Balance");
-            uint8 decimals = IERC20Metadata(_tokenA).decimals();
+            require(uint(_amountToSwap) <= IERC20(_tokenA).balanceOf(msg.sender), "Insufficient Balance");
+            string memory _tokenASymbol = IERC20Metadata(_tokenA).symbol();
+            string memory _tokenBSymbol = IERC20Metadata(_tokenB).symbol();
+            uint8 _tokenBDecimals = IERC20Metadata(_tokenB).decimals();
             address pairAddress = getPair(_tokenA, _tokenB);
-            require(pairAddress, "Token liquidity pool not available");
-            uint amountOut = getSwapTokenPrice(
-                _tokenA, 
-                _tokenB, 
-                decimals, 
+            //require(pairAddress, "Token liquidity pool not available");
+            uint amountOut = uint(getSwapTokenPrice(
+                _tokenASymbol, 
+                _tokenBSymbol, 
+                _tokenBDecimals, 
                 _amountToSwap
-            );
+            ));
             require(IERC20(_tokenB).balanceOf(pairAddress) >= amountOut, "try again shortly");
             
             IERC20(_tokenA).transferFrom(
                 msg.sender,
                 pairAddress,
-                _amountToSwap
+                uint(_amountToSwap)
             );
             IERC20(_tokenB).transferFrom(
                 pairAddress,
